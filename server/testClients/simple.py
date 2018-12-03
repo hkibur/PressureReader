@@ -1,7 +1,7 @@
 import socket
 import time
 
-TCP_IP = '127.0.0.1'
+TCP_IP = '192.168.1.65'
 TCP_PORT = 111
 BUFFER_SIZE = 1024
 MESSAGE = "Hello, World! wow"

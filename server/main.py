@@ -4,7 +4,7 @@ import threading
 import pressureConnection
 import common
 
-TCP_IP = "127.0.0.1"
+TCP_IP = "0.0.0.0"
 TCP_PORT = 111
 BUF_LEN = 1024
 
@@ -15,13 +15,13 @@ serverClosing = False
 psocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 psocket.bind((TCP_IP, TCP_PORT))
 psocket.listen(1)
-psocket.settimeout(1)
+psocket.setblocking(0)
 
 def serverMainLoop():
     while not serverClosing:
         try:
             conn, addr = psocket.accept()
-        except Exception as e:
+        except socket.error as e:
             continue
         connectionList.append(pressureConnection.PrintPressureConnection(conn, addr))
 
@@ -36,6 +36,8 @@ loopThread = threading.Thread(target = serverMainLoop)
 loopThread.start()
 cleanerThread = threading.Thread(target = connectionCleaner)
 cleanerThread.start()
+
+common.infoPrint(socket.gethostbyname(socket.gethostname()))
 
 while True:
     print "Server>",

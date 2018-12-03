@@ -70,6 +70,7 @@ void RAvgRingBuffer::shift(int val) {
 
 RAvgRingBuffer avgBuf(10);
 ESP8266WebServer server(80);
+WiFiClient tcpSock;
 
 const int inRangeMin = 0; //Input range minimum
 const int inRangeMax = 1024; //Input range maximum
@@ -78,6 +79,12 @@ const int outRangeMax = 1024; //Output range maximum
 float outMultiplier; //Multiplier for input value
 
 const char* SSID = "abcdef";
+const char* HTML_RESP_FORM = "<!doctypehtml><form action=/ >SSID:<br><input name=ssid><br>Password:<br><input name=pass><br>Target:<br><input name=target><br><input type=submit value=Connect></form>";
+const char* HTML_RESP_DONE = "<!doctypehtml><h1>All done</h1>";
+
+const char* wifiSSID;
+const char* wifiPass;
+const char* wifiTarget;
 
 int adcInput; //ADC read value, used in loop
 bool serverSatisfied = false;
@@ -92,8 +99,15 @@ float getOutput(float val){
 }
 
 void serverHandleRoot() {
-	Serial.println("handled");
-	server.send(200, "text/html", "<h1>You are connected</h1>");
+  if(server.hasArg("ssid") && server.hasArg("pass") && server.hasArg("target")){
+    wifiSSID = server.arg("user").c_str();
+    wifiPass = server.arg("pass").c_str();
+    wifiTarget = server.arg("target").c_str();
+    serverSatisfied = true;
+    server.send(200, "text/html", HTML_RESP_DONE);
+  } else {
+    server.send(200, "text/html", HTML_RESP_FORM);
+  }
 }
 
 void setup() {
@@ -116,6 +130,17 @@ void setup() {
   while (!serverSatisfied) {
 	  server.handleClient();
   }
+  server.close();
+  WiFi.softAPdisconnect(true);
+  WiFi.begin(wifiSSID, wifiPass);
+  Serial.print("Connecting to wifi");
+  while(WiFi.status() != WL_CONNECTED){
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println(" connected!");
+  tcpSock.connect("192.168.1.65", 111);
+  Serial.println("connected to target");
 }
 
 void loop() {
@@ -125,5 +150,6 @@ void loop() {
   digitalWrite(LED, LOW);
   adcInput = analogRead(ADC);
   avgBuf.shift(adcInput);
+  tcpSock.println(getOutput(avgBuf.getAvg()));
   Serial.println(getOutput(avgBuf.getAvg()));
 }

@@ -1,7 +1,7 @@
 import threading
 
 import common
-
+import socket
 JOIN_TIMEOUT = 5
 
 class PressureConnection(object): #Only subclass this
@@ -39,8 +39,11 @@ class PrintPressureConnection(PressureConnection):
 
     def worker(self):
         while not self.closing:
-            data = self.conn.recv(self.messLen)
+            try:
+                data = self.conn.recv(self.messLen)
+            except socket.error as e:
+                continue
             if not data:
                 common.infoPrint("connection closed by client")
                 break
-            print(data.decode())
+            common.infoPrint(data.decode())
