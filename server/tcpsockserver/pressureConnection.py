@@ -17,15 +17,23 @@ class PressureConnection(object): #Only subclass this
 
         common.infoPrint("new connection:", self.addr)
 
-        self.workerThread = threading.Thread(target = self.subWorker)
+        self.workerThread = threading.Thread(target = self.worker)
         self.workerThread.start()
 
-    def subWorker(self):
-        self.worker()
+    def worker(self):
+        while not self.closing:
+            try:
+                data = self.conn.recv(self.messLen)
+            except socket.error as e:
+                continue
+            if not data:
+                common.infoPrint("connection closed by client")
+                break
+            self.dataHandler(data)
         self.conn.close()
         self.clean = True
 
-    def worker(self):
+    def dataHandler(self, data):
         raise NotImplementedError
 
     def close(self):
@@ -40,28 +48,12 @@ class PrintPressureConnection(PressureConnection):
     def __init__(self, *args, **kwargs):
         PressureConnection.__init__(self, *args, **kwargs)
 
-    def worker(self):
-        while not self.closing:
-            try:
-                data = self.conn.recv(self.messLen)
-            except socket.error as e:
-                continue
-            if not data:
-                common.infoPrint("connection closed by client")
-                break
-            sys.stdout.write(data)
+    def dataHandler(self, data):
+        sys.stdout.write(data)
 
 class FileLogPressureConnection(PressureConnection):
     def __init__(self, *args, **kwargs):
         PressureConnection.__init__(self, *args, **kwargs)
 
-    def worker(self):
-        while not self.closing:
-            try:
-                data = self.conn.recv(self.messLen)
-            except socket.error as e:
-                continue
-            if not data:
-                common.infoPrint("connection closed by client")
-                break
-            #TODO: think about architecture, find where file should be.
+    def dataHandler(self, data):
+        #TODO: think about architecture, find where file should be.
