@@ -1,7 +1,10 @@
 import threading
+import sys
 
 import common
 import socket
+import filelock
+
 JOIN_TIMEOUT = 5
 
 class PressureConnection(object): #Only subclass this
@@ -46,4 +49,19 @@ class PrintPressureConnection(PressureConnection):
             if not data:
                 common.infoPrint("connection closed by client")
                 break
-            common.infoPrint(data.decode())
+            sys.stdout.write(data)
+
+class FileLogPressureConnection(PressureConnection):
+    def __init__(self, *args, **kwargs):
+        PressureConnection.__init__(self, *args, **kwargs)
+
+    def worker(self):
+        while not self.closing:
+            try:
+                data = self.conn.recv(self.messLen)
+            except socket.error as e:
+                continue
+            if not data:
+                common.infoPrint("connection closed by client")
+                break
+            #TODO: think about architecture, find where file should be.
